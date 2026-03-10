@@ -1,8 +1,12 @@
--------------------------
-|                       |
-|                       |
-|        🏋️‍♂️           |
-|       Lift Log        |
-|                       |
-|                       |
--------------------------
+<svg xmlns="http://www.w3.org/2000/svg" width="1170" height="2532">
+  <rect width="100%" height="100%" fill="#0f172a"/>
+  <text x="50%" y="48%" text-anchor="middle" font-size="120" fill="white">
+    🏋️‍♂️
+  </text>
+  <text x="50%" y="56%" text-anchor="middle"
+        font-family="-apple-system, sans-serif"
+        font-size="64"
+        fill="white">
+    Lift Log
+  </text>
+</svg>
