@@ -8,7 +8,7 @@
   "description": "Minimal workout logging app",
   "icons": [
     {
-      "src": "icon-180.png",
+      "src": "icon.png",
       "sizes": "180x180",
       "type": "image/png"
     }
