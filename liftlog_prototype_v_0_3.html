@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Lift Log v0.3</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel2: #334155;
+    --text: #f8fafc;
+    --muted: #cbd5e1;
+    --accent: #38bdf8;
+    --accentText: #082f49;
+    --goodBg: #86efac;
+    --goodText: #14532d;
+    --dangerBg: #ef4444;
+    --dangerText: #fff1f2;
+    --dangerSoftBg: #fecaca;
+    --dangerSoftText: #7f1d1d;
+    --border: rgba(255,255,255,0.08);
+    --restBg: rgba(245,158,11,0.18);
+    --restText: #fde68a;
+    --activeBg: rgba(34,197,94,0.18);
+    --activeText: #bbf7d0;
+    --idleBg: rgba(148,163,184,0.18);
+    --idleText: #cbd5e1;
+    --unselectedBg: #cbd5e1;
+    --unselectedText: #334155;
+    --disabledBg: #94a3b8;
+    --disabledText: #1e293b;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 40px;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: rgba(30, 41, 59, 0.96);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1, h2, h3, h4, p { margin: 0; }
+  h1 { font-size: 1.08rem; }
+  h3 { margin-bottom: 8px; }
+  h4 { margin-bottom: 10px; font-size: 1rem; }
+
+  .container {
+    padding: 16px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .hidden { display: none !important; }
+
+  .card, .exerciseCard, .setCard {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+  }
+
+  .setCard {
+    background: var(--panel2);
+    padding: 16px;
+    scroll-margin-top: 88px;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .archiveAlt {
+    background: #475569;
+    border-color: rgba(255,255,255,0.28);
+  }
+
+  body.exercise-incomplete-mode .archiveAlt {
+    background: #bfd0e8;
+    border-color: rgba(15,23,42,0.26);
+  }
+
+  .setCard.filled {
+    background: #162235;
+    border-color: rgba(255,255,255,0.22);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.28);
+  }
+
+  body.exercise-incomplete-mode #exerciseScreen .setCard.filled {
+    background: #cbd8ea;
+    border-color: rgba(15,23,42,0.22);
+    box-shadow: inset 0 0 0 1px rgba(15,23,42,0.06), 0 10px 24px rgba(15,23,42,0.12);
+  }
+
+  .stack { display: grid; gap: 12px; }
+  .row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .between {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .sectionTitle {
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .muted { color: var(--muted); }
+
+  input, textarea {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    background: #e2e8f0;
+    color: #0f172a;
+    padding: 12px 14px;
+    font-size: 1rem;
+  }
+
+  textarea {
+    min-height: 110px;
+    resize: vertical;
+  }
+
+  .half { width: calc(50% - 5px); }
+
+  button {
+    border: none;
+    border-radius: 14px;
+    background: var(--accent);
+    color: var(--accentText);
+    padding: 12px 16px;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  button.secondary {
+    background: #cbd5e1;
+    color: #0f172a;
+  }
+
+  button.ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  button.good {
+    background: var(--goodBg);
+    color: var(--goodText);
+    box-shadow: 0 0 0 3px rgba(134,239,172,0.18), 0 0 20px rgba(134,239,172,0.18);
+  }
+
+  button.danger {
+    background: var(--dangerSoftBg);
+    color: var(--dangerSoftText);
+  }
+
+  button.stop-live {
+    background: var(--dangerBg);
+    color: var(--dangerText);
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.2), 0 0 22px rgba(239,68,68,0.3);
+  }
+
+  button.disabledAction {
+    background: var(--disabledBg);
+    color: var(--disabledText);
+    box-shadow: none;
+  }
+
+  button.unselected {
+    background: var(--unselectedBg);
+    color: var(--unselectedText);
+  }
+
+  .bigButton {
+    width: 100%;
+    min-height: 72px;
+    font-size: 1.14rem;
+    letter-spacing: 0.01em;
+  }
+
+  .statusPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.92rem;
+    font-weight: 800;
+  }
+
+  .status-idle { background: var(--idleBg); color: var(--idleText); }
+  .status-active { background: var(--activeBg); color: var(--activeText); }
+  .status-rest { background: var(--restBg); color: var(--restText); }
+
+  .timer {
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+  }
+
+  .headerTimer { font-size: 1.15rem; }
+  .exerciseTimer { font-size: 1rem; }
+
+  .setMeta {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 0.94rem;
+  }
+
+  .miniActions { display: grid; gap: 12px; }
+  .spacerTop { margin-top: 12px; }
+  .smallText { font-size: 0.92rem; }
+  .exerciseSummary { font-size: 0.92rem; color: var(--muted); }
+  .addSetWrap { margin-top: 4px; }
+
+  .actualRow {
+    display: grid;
+    grid-template-columns: 1fr 140px;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .confirmBox {
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .stickyFooterSpace { height: 6px; }
+
+  @media (max-width: 520px) {
+    .half { width: 100%; }
+    .actualRow { grid-template-columns: 1fr; }
+    button { width: 100%; }
+    .mainActionRow button { width: calc(50% - 5px); }
+  }
+
+  body.exercise-complete-mode {
+    background: #020617;
+  }
+
+  body.exercise-complete-mode .setCard,
+  body.exercise-complete-mode #exerciseScreen .card {
+    background: #0f172a;
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  body.exercise-incomplete-mode {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  body.exercise-incomplete-mode header {
+    background: rgba(226,232,240,0.96);
+    border-bottom: 1px solid rgba(15,23,42,0.1);
+  }
+
+  body.exercise-incomplete-mode #exerciseScreen .card,
+  body.exercise-incomplete-mode #exerciseScreen .setCard {
+    background: #ffffff;
+    color: #0f172a;
+    border-color: rgba(15,23,42,0.08);
+  }
+
+  body.exercise-incomplete-mode #exerciseScreen .sectionTitle,
+  body.exercise-incomplete-mode #exerciseScreen .muted,
+  body.exercise-incomplete-mode #exerciseScreen .setMeta {
+    color: #475569;
+  }
+
+  body.exercise-incomplete-mode #exerciseScreen .ghost {
+    color: #0f172a;
+    border-color: rgba(15,23,42,0.2);
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lift Log v0.3</h1>
+  <div id="sessionTimer" class="timer headerTimer">00:00</div>
+</header>
+
+<div class="container" id="mainScreen">
+  <div class="card stack">
+    <div>
+      <div class="sectionTitle">Session Date</div>
+      <input id="sessionDateInput" onchange="updateSessionDate(this.value)" />
+    </div>
+
+    <div class="row mainActionRow">
+      <button id="prefillExercisesBtn" class="unselected" onclick="handlePrefillExercises()">Autofill Exercises</button>
+      <button id="prefillStrengthBtn" class="unselected" onclick="handlePrefillStrength()">Last Strength</button>
+    </div>
+
+    <div>
+      <div class="sectionTitle">Goal Reps</div>
+      <div class="row mainActionRow">
+        <button id="rep8Btn" class="unselected" onclick="handlePrefillReps(8)">8</button>
+        <button id="rep10Btn" class="unselected" onclick="handlePrefillReps(10)">10</button>
+        <button id="rep12Btn" class="unselected" onclick="handlePrefillReps(12)">12</button>
+      </div>
+    </div>
+
+    <div class="row mainActionRow">
+      <button class="secondary" onclick="addExercise()">Add Exercise</button>
+      <button class="ghost" onclick="completeAndArchiveSession()">Archive Session</button>
+    </div>
+
+    <div class="row mainActionRow">
+      <button class="danger" onclick="showClearConfirm()">Clear All</button>
+    </div>
+
+    <div id="clearConfirmBox" class="confirmBox hidden">
+      <div class="smallText">Clear the active session and remove all current exercises?</div>
+      <div class="row spacerTop">
+        <button class="danger" onclick="confirmClearAll()">Yes, Clear All</button>
+        <button class="secondary" onclick="hideClearConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="exerciseList"></div>
+
+  <div class="row mainActionRow spacerTop">
+    <button onclick="openExport()">Export</button>
+    <button class="secondary" onclick="openSettings()">Settings</button>
+    <button class="ghost" onclick="openArchive()">Archive Review</button>
+  </div>
+</div>
+
+<div class="container hidden" id="exerciseScreen"></div>
+
+<div class="container hidden" id="exportScreen">
+  <div class="card stack">
+    <h3>Export</h3>
+    <div class="smallText muted">Concise summary of entered set data, grouped when sets share the same stats.</div>
+    <textarea id="exportText"></textarea>
+    <div class="row mainActionRow">
+      <button onclick="copyExport()">Copy</button>
+      <button class="secondary" onclick="goHome()">Back</button>
+    </div>
+  </div>
+</div>
+
+<div class="container hidden" id="archiveScreen">
+  <div class="card stack">
+    <h3>Archived Sessions</h3>
+    <div class="smallText muted">Archived sessions are shown with export-style summaries.</div>
+    <div id="archiveList"></div>
+    <div id="archiveDeleteConfirm" class="confirmBox hidden">
+      <div class="smallText">Delete all archived sessions?</div>
+      <div class="row spacerTop">
+        <button class="danger" onclick="showArchiveDeleteFinalConfirm()">Continue</button>
+        <button class="secondary" onclick="hideArchiveDeleteConfirm()">Cancel</button>
+      </div>
+    </div>
+    <div id="archiveDeleteFinalConfirm" class="confirmBox hidden">
+      <div class="smallText">This will permanently remove all archived sessions.</div>
+      <div class="row spacerTop">
+        <button class="danger" onclick="confirmDeleteArchive()">Yes, Delete Archive</button>
+        <button class="secondary" onclick="hideArchiveDeleteFinalConfirm()">Cancel</button>
+      </div>
+    </div>
+    <div class="row mainActionRow">
+      <button class="danger" onclick="showArchiveDeleteConfirm()">Delete Archive</button>
+      <button class="secondary" onclick="goHome()">Back</button>
+    </div>
+  </div>
+</div>
+
+<div class="container hidden" id="settingsScreen">
+  <div class="card stack">
+    <h3>Prefill Exercises</h3>
+    <div class="smallText muted">One per line using: Target Area - Exercise Name - Unit</div>
+    <textarea id="exerciseSettings"></textarea>
+    <div class="row mainActionRow">
+      <button onclick="saveSettings()">Save</button>
+      <button class="secondary" onclick="goHome()">Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function makeId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.floor(Math.random() * 100000));
+}
+
+function todayString() {
+  return new Date().toLocaleDateString();
+}
+
+function defaultData() {
+  return {
+    activeSession: {
+      id: makeId(),
+      date: todayString(),
+      sessionStart: null,
+      sessionEnd: null,
+      exercises: [],
+      prefillState: {
+        exercisesClicked: false,
+        lastStrengthClicked: false,
+        goalRepsSelected: null
+      }
+    },
+    sessionHistory: [],
+    settings: {
+      prefillExercises: `Abs - Cable Crunch - lbs
+Cardio - Stair Stepper - min
+Chest - Barbell Chest Press - lbs
+Chest - Pec Fly Machine - lbs
+Legs - Barbell Squats - lbs
+Legs - Leg Press - lbs
+Biceps - Hammer Curls - lbs
+Back - Lat Pulldown - lbs`
+    }
+  };
+}
+
+let data;
+let currentExerciseIndex = null;
+
+try {
+  data = JSON.parse(localStorage.getItem('liftlog')) || defaultData();
+} catch {
+  data = defaultData();
+}
+
+if (!data.activeSession.prefillState) {
+  data.activeSession.prefillState = { exercisesClicked: false, lastStrengthClicked: false, goalRepsSelected: null };
+}
+
+function save() {
+  localStorage.setItem('liftlog', JSON.stringify(data));
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function createSet(defaultUnit = 'lbs') {
+  return {
+    id: makeId(),
+    strengthValue: '',
+    strengthUnit: defaultUnit,
+    goalReps: '',
+    actualReps: '',
+    start: null,
+    end: null,
+    note: '',
+    restAfterMs: null,
+    restStart: null,
+    active: false
+  };
+}
+
+function parsePrefillLine(line) {
+  const trimmed = String(line || '').trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split('-').map(s => s.trim());
+  if (parts.length < 2) return null;
+  const targetArea = parts[0] || '';
+  const name = parts[1] || '';
+  const unit = parts[2] || (targetArea.toLowerCase() === 'cardio' ? 'min' : 'lbs');
+  return { targetArea, name, unit };
+}
+
+function createExercise(area = '', name = '', unit = null) {
+  const isCardio = String(area).trim().toLowerCase() === 'cardio';
+  const resolvedUnit = unit || (isCardio ? 'min' : 'lbs');
+  return {
+    id: makeId(),
+    targetArea: area,
+    name: name,
+    complete: false,
+    note: '',
+    showSet4: false,
+    sets: isCardio ? [createSet(resolvedUnit)] : [createSet(resolvedUnit), createSet(resolvedUnit), createSet(resolvedUnit)]
+  };
+}
+
+function getIsCardio(ex) {
+  return String(ex.targetArea).trim().toLowerCase() === 'cardio';
+}
+
+function normalizeExerciseForType(ex) {
+  if (getIsCardio(ex)) {
+    ex.showSet4 = false;
+    ex.sets = [ex.sets[0] || createSet('min')];
+    ex.sets[0].strengthUnit = ex.sets[0].strengthUnit || 'min';
+    ex.sets[0].goalReps = 1;
+  } else {
+    const defaultUnit = ex.sets[0]?.strengthUnit || 'lbs';
+    while (ex.sets.length < 3) ex.sets.push(createSet(defaultUnit));
+    if (ex.sets.length > 4) ex.sets = ex.sets.slice(0, 4);
+    ex.sets.forEach(set => {
+      if (!set.strengthUnit) set.strengthUnit = defaultUnit;
+    });
+  }
+}
+
+function getVisibleSets(ex) {
+  if (getIsCardio(ex)) return ex.sets.slice(0, 1);
+  return ex.showSet4 ? ex.sets : ex.sets.slice(0, 3);
+}
+
+function formatDuration(ms) {
+  if (!ms || ms < 0) return '00:00';
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function formatMinutesSummary(ms) {
+  if (!ms || ms <= 0) return '0 min';
+  const minutes = Math.round(ms / 60000);
+  return `${minutes} min`;
+}
+
+function getExerciseFirstStart(ex) {
+  const starts = ex.sets.map(s => s.start).filter(Boolean);
+  return starts.length ? Math.min(...starts) : null;
+}
+
+function getExerciseLastEnd(ex) {
+  const ends = ex.sets.map(s => s.end).filter(Boolean);
+  return ends.length ? Math.max(...ends) : null;
+}
+
+function getExerciseDurationMs(ex) {
+  const first = getExerciseFirstStart(ex);
+  const last = getExerciseLastEnd(ex);
+  if (!first || !last || last < first) return 0;
+  return last - first;
+}
+
+function getExerciseAverageRestMs(ex) {
+  if (getIsCardio(ex)) return 0;
+  const visible = getVisibleSets(ex);
+  const rests = visible.slice(0, -1).map(s => s.restAfterMs).filter(v => typeof v === 'number' && v >= 0);
+  if (!rests.length) return 0;
+  return rests.reduce((a, b) => a + b, 0) / rests.length;
+}
+
+function getSessionStart() {
+  if (data.activeSession.sessionStart) return data.activeSession.sessionStart;
+  const starts = data.activeSession.exercises.flatMap(ex => ex.sets.map(s => s.start)).filter(Boolean);
+  return starts.length ? Math.min(...starts) : null;
+}
+
+function getSessionEnd() {
+  const ends = data.activeSession.exercises.flatMap(ex => ex.sets.map(s => s.end)).filter(Boolean);
+  return ends.length ? Math.max(...ends) : null;
+}
+
+function getCurrentSessionDurationMs() {
+  const start = getSessionStart();
+  if (!start) return 0;
+  const end = getSessionEnd();
+  const anyActive = data.activeSession.exercises.some(ex => ex.sets.some(s => s.active));
+  const anyRestRunning = data.activeSession.exercises.some(ex => {
+    const visible = getVisibleSets(ex);
+    return visible.slice(0, -1).some(s => s.restStart && s.restAfterMs == null);
+  });
+  if (!anyActive && !anyRestRunning && end) return end - start;
+  if (anyActive || anyRestRunning) return Date.now() - start;
+  return end ? end - start : 0;
+}
+
+function getActiveRestState(ex) {
+  const visible = getVisibleSets(ex);
+  for (let i = 0; i < visible.length - 1; i++) {
+    const set = visible[i];
+    if (set.restStart && set.restAfterMs == null) {
+      return { active: true, setIndex: i, ms: Date.now() - set.restStart };
+    }
+  }
+  return { active: false, setIndex: -1, ms: 0 };
+}
+
+function getExerciseStatus(ex) {
+  const visible = getVisibleSets(ex);
+  const activeSetIndex = visible.findIndex(s => s.active);
+  if (activeSetIndex >= 0) {
+    const set = visible[activeSetIndex];
+    return { type: 'active', label: `Set in Progress`, ms: Date.now() - (set.start || Date.now()) };
+  }
+  const rest = getActiveRestState(ex);
+  if (rest.active) {
+    return { type: 'rest', label: `Rest after Set ${rest.setIndex + 1}`, ms: rest.ms };
+  }
+  return { type: 'idle', label: ex.complete ? 'Completed' : 'Ready', ms: getExerciseDurationMs(ex) };
+}
+
+function getReportedSetCount(ex) {
+  return getVisibleSets(ex).filter(set => String(set.actualReps || '').trim() !== '').length;
+}
+
+function getNextRelevantSetIndex(ex) {
+  const visibleSets = getVisibleSets(ex);
+  const activeIndex = visibleSets.findIndex(set => set.active);
+  if (activeIndex >= 0) return activeIndex;
+  for (let i = 0; i < visibleSets.length; i++) {
+    const set = visibleSets[i];
+    if (!set.start || !set.end || String(set.actualReps).trim() === '') return i;
+  }
+  return Math.max(visibleSets.length - 1, 0);
+}
+
+function sortExercisesForMainPage() {
+  data.activeSession.exercises.sort((a, b) => Number(a.complete) - Number(b.complete));
+}
+
+function sortExercisesByChronology(exercises) {
+  return [...exercises].sort((a, b) => {
+    const aStart = getExerciseFirstStart(a) || Number.MAX_SAFE_INTEGER;
+    const bStart = getExerciseFirstStart(b) || Number.MAX_SAFE_INTEGER;
+    return aStart - bStart;
+  });
+}
+
+function updatePrefillButtonStyles() {
+  const state = data.activeSession.prefillState || {};
+  const prefillExercisesBtn = document.getElementById('prefillExercisesBtn');
+  const prefillStrengthBtn = document.getElementById('prefillStrengthBtn');
+  const rep8Btn = document.getElementById('rep8Btn');
+  const rep10Btn = document.getElementById('rep10Btn');
+  const rep12Btn = document.getElementById('rep12Btn');
+  if (prefillExercisesBtn) prefillExercisesBtn.className = state.exercisesClicked ? '' : 'unselected';
+  if (prefillStrengthBtn) prefillStrengthBtn.className = state.lastStrengthClicked ? '' : 'unselected';
+  if (rep8Btn) rep8Btn.className = state.goalRepsSelected === 8 ? '' : 'unselected';
+  if (rep10Btn) rep10Btn.className = state.goalRepsSelected === 10 ? '' : 'unselected';
+  if (rep12Btn) rep12Btn.className = state.goalRepsSelected === 12 ? '' : 'unselected';
+}
+
+function updateSessionDate(value) {
+  data.activeSession.date = value;
+  save();
+}
+
+function ensureDateInput() {
+  const input = document.getElementById('sessionDateInput');
+  if (input) input.value = data.activeSession.date || todayString();
+}
+
+function showClearConfirm() {
+  document.getElementById('clearConfirmBox').classList.remove('hidden');
+}
+
+function hideClearConfirm() {
+  document.getElementById('clearConfirmBox').classList.add('hidden');
+}
+
+function confirmClearAll() {
+  data.activeSession = {
+    id: makeId(),
+    date: todayString(),
+    sessionStart: null,
+    sessionEnd: null,
+    exercises: [],
+    prefillState: {
+      exercisesClicked: false,
+      lastStrengthClicked: false,
+      goalRepsSelected: null
+    }
+  };
+  currentExerciseIndex = null;
+  save();
+  hideClearConfirm();
+  goHome();
+}
+
+function renderExercises() {
+  ensureDateInput();
+  updatePrefillButtonStyles();
+  sortExercisesForMainPage();
+  const list = document.getElementById('exerciseList');
+  list.innerHTML = '';
+
+  if (!data.activeSession.exercises.length) {
+    list.innerHTML = '<div class="card"><i>No exercises yet</i></div>';
+    return;
+  }
+
+  data.activeSession.exercises.forEach((ex, i) => {
+    normalizeExerciseForType(ex);
+    const div = document.createElement('div');
+    div.className = 'exerciseCard';
+    const duration = formatMinutesSummary(getExerciseDurationMs(ex));
+    const status = ex.complete ? '✅ Complete' : '👾 Incomplete';
+    div.innerHTML = `
+      <div class="stack">
+        <div class="row">
+          <input class="half" value="${escapeHtml(ex.targetArea)}" onchange="updateArea(${i}, this.value)">
+          <input class="half" value="${escapeHtml(ex.name)}" onchange="updateName(${i}, this.value)">
+        </div>
+        <div class="between">
+          <div class="exerciseSummary">${status}</div>
+          <div class="exerciseSummary">Time: ${duration}</div>
+        </div>
+        <div class="row">
+          <button onclick="openExercise(${i})">Open</button>
+          <button class="danger" onclick="removeExercise(${i})">Remove</button>
+        </div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+  save();
+}
+
+function addExercise() {
+  if (data.activeSession.exercises.length >= 10) {
+    alert('Max 10 exercises');
+    return;
+  }
+  data.activeSession.exercises.push(createExercise());
+  save();
+  renderExercises();
+}
+
+function removeExercise(i) {
+  data.activeSession.exercises.splice(i, 1);
+  save();
+  renderExercises();
+}
+
+function updateArea(i, value) {
+  data.activeSession.exercises[i].targetArea = value;
+  normalizeExerciseForType(data.activeSession.exercises[i]);
+  save();
+  if (currentExerciseIndex === i && !document.getElementById('exerciseScreen').classList.contains('hidden')) openExercise(i);
+}
+
+function updateName(i, value) {
+  data.activeSession.exercises[i].name = value;
+  save();
+}
+
+function handlePrefillExercises() {
+  data.activeSession.prefillState.exercisesClicked = true;
+  prefillExercises();
+}
+
+function handlePrefillStrength() {
+  data.activeSession.prefillState.lastStrengthClicked = true;
+  prefillStrength();
+}
+
+function handlePrefillReps(n) {
+  data.activeSession.prefillState.goalRepsSelected = n;
+  prefillReps(n);
+}
+
+function prefillExercises() {
+  const lines = data.settings.prefillExercises.split('\n');
+  data.activeSession.exercises = [];
+  lines.forEach(line => {
+    const parsed = parsePrefillLine(line);
+    if (!parsed) return;
+    if (data.activeSession.exercises.length < 10) {
+      data.activeSession.exercises.push(createExercise(parsed.targetArea, parsed.name, parsed.unit));
+    }
+  });
+  save();
+  renderExercises();
+}
+
+function prefillReps(n) {
+  data.activeSession.exercises.forEach(ex => {
+    normalizeExerciseForType(ex);
+    ex.sets.forEach(set => {
+      set.goalReps = getIsCardio(ex) ? 1 : n;
+    });
+  });
+  save();
+  renderExercises();
+  alert('Goal reps prefilled');
+}
+
+function prefillStrength() {
+  const last = data.sessionHistory[data.sessionHistory.length - 1];
+  if (!last) {
+    alert('No previous workout');
+    return;
+  }
+  data.activeSession.exercises.forEach(ex => {
+    const prev = last.exercises.find(p => (p.name || '').trim().toLowerCase() === (ex.name || '').trim().toLowerCase());
+    if (prev) {
+      normalizeExerciseForType(ex);
+      ex.sets.forEach((set, i) => {
+        set.strengthValue = prev.sets?.[i]?.strengthValue || prev.sets?.[0]?.strengthValue || '';
+        set.strengthUnit = prev.sets?.[i]?.strengthUnit || prev.sets?.[0]?.strengthUnit || set.strengthUnit;
+      });
+      ex.note = prev.note || ex.note;
+    }
+  });
+  save();
+  if (currentExerciseIndex !== null) openExercise(currentExerciseIndex); else renderExercises();
+  alert('Strength copied from last archived session by matching exercise name');
+}
+
+function updateExerciseHeader(e, field, value) {
+  data.activeSession.exercises[e][field] = value;
+  if (field === 'targetArea') normalizeExerciseForType(data.activeSession.exercises[e]);
+  save();
+}
+
+function updateExerciseNote(e, value) {
+  data.activeSession.exercises[e].note = value;
+  save();
+}
+
+function updateWeight(e, s, value) {
+  data.activeSession.exercises[e].sets[s].strengthValue = value;
+  save();
+}
+
+function updateUnit(e, s, value) {
+  data.activeSession.exercises[e].sets[s].strengthUnit = value;
+  save();
+}
+
+function updateGoalReps(e, s, value) {
+  data.activeSession.exercises[e].sets[s].goalReps = value;
+  save();
+}
+
+function updateActualReps(e, s, value) {
+  data.activeSession.exercises[e].sets[s].actualReps = value;
+  save();
+}
+
+function confirmActualReps(e, s) {
+  save();
+  const ex = data.activeSession.exercises[e];
+  const visible = getVisibleSets(ex);
+  const isLast = s === visible.length - 1;
+  if (isLast) {
+    openExercise(e, { scrollToSet: s, focusActual: false });
+    requestAnimationFrame(() => {
+      const completion = document.getElementById('completion-card');
+      if (completion) completion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  } else {
+    const nextIndex = s + 1;
+    openExercise(e, { scrollToSet: nextIndex, focusActual: false });
+  }
+}
+
+function matchAboveStrength(e, s) {
+  const ex = data.activeSession.exercises[e];
+  if (s <= 0) return;
+  const prev = ex.sets[s - 1];
+  const cur = ex.sets[s];
+  cur.strengthValue = prev.strengthValue;
+  cur.strengthUnit = prev.strengthUnit;
+  save();
+  openExercise(e, { scrollToSet: s });
+}
+
+function updateSetNote(e, s, value) {
+  data.activeSession.exercises[e].sets[s].note = value;
+  save();
+}
+
+function useGoalReps(e, s) {
+  const set = data.activeSession.exercises[e].sets[s];
+  set.actualReps = set.goalReps;
+  save();
+  const ex = data.activeSession.exercises[e];
+  const visible = getVisibleSets(ex);
+  const isLast = s === visible.length - 1;
+  if (isLast) {
+    openExercise(e, { scrollToSet: s, focusActual: false });
+    requestAnimationFrame(() => {
+      const completion = document.getElementById('completion-card');
+      if (completion) completion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  } else {
+    const nextIndex = s + 1;
+    openExercise(e, { scrollToSet: nextIndex, focusActual: false });
+  }
+}
+
+function markExerciseComplete(e, state) {
+  const ex = data.activeSession.exercises[e];
+  ex.complete = state;
+  if (state) {
+    const visible = getVisibleSets(ex);
+    visible.forEach((set, idx) => {
+      if (idx === visible.length - 1) {
+        set.restStart = null;
+        set.restAfterMs = null;
+      }
+      set.active = false;
+    });
+  }
+  save();
+  openExercise(e);
+  requestAnimationFrame(() => {
+    const backButton = document.querySelector('#exerciseScreen button.secondary[onclick="goHome()"]');
+    if (backButton) backButton.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  });
+}
+
+function startSet(e, s) {
+  const ex = data.activeSession.exercises[e];
+  normalizeExerciseForType(ex);
+  const set = ex.sets[s];
+  const visible = getVisibleSets(ex);
+  ex.sets.forEach((other, idx) => {
+    if (idx !== s) other.active = false;
+  });
+
+  if (!data.activeSession.sessionStart) data.activeSession.sessionStart = Date.now();
+  if (set.start == null) set.start = Date.now();
+
+  if (s > 0) {
+    const prev = visible[s - 1];
+    if (prev && prev.restStart && prev.restAfterMs == null) {
+      prev.restAfterMs = Date.now() - prev.restStart;
+      prev.restStart = null;
+    }
+  }
+
+  set.active = true;
+  save();
+  openExercise(e, { scrollToSet: s });
+}
+
+function stopSet(e, s) {
+  const ex = data.activeSession.exercises[e];
+  const visible = getVisibleSets(ex);
+  const set = visible[s];
+  if (!set.start) {
+    alert('Start the set first');
+    return;
+  }
+  set.end = Date.now();
+  set.active = false;
+  const isLastVisibleSet = s === visible.length - 1;
+  if (!isLastVisibleSet) {
+    set.restStart = Date.now();
+    set.restAfterMs = null;
+  } else {
+    set.restStart = null;
+    set.restAfterMs = null;
+  }
+  save();
+  openExercise(e, { scrollToSet: s, focusActual: true });
+}
+
+function addSet4(e) {
+  const ex = data.activeSession.exercises[e];
+  if (getIsCardio(ex)) return;
+  if (!ex.showSet4) {
+    ex.showSet4 = true;
+    if (ex.sets.length < 4) ex.sets.push(createSet(ex.sets[0]?.strengthUnit || 'lbs'));
+    save();
+    openExercise(e, { scrollToSet: 3 });
+  }
+}
+
+function completeAndArchiveSession() {
+  if (!data.activeSession.exercises.length) {
+    alert('No active session to archive');
+    return;
+  }
+  const snapshot = JSON.parse(JSON.stringify(data.activeSession));
+  snapshot.sessionStart = getSessionStart();
+  snapshot.sessionEnd = getSessionEnd();
+  data.sessionHistory.push(snapshot);
+  data.activeSession = {
+    id: makeId(),
+    date: todayString(),
+    sessionStart: null,
+    sessionEnd: null,
+    exercises: [],
+    prefillState: {
+      exercisesClicked: false,
+      lastStrengthClicked: false,
+      goalRepsSelected: null
+    }
+  };
+  currentExerciseIndex = null;
+  save();
+  goHome();
+  alert('Session archived');
+}
+
+function groupSetSummaries(ex) {
+  const visible = getVisibleSets(ex);
+  const groups = [];
+  visible.forEach((set, index) => {
+    const actual = String(set.actualReps || '').trim();
+    const goal = String(set.goalReps || '').trim();
+    const strength = `${String(set.strengthValue || '').trim()} ${String(set.strengthUnit || '').trim()}`.trim();
+    const key = `${strength}||${goal}||${actual}`;
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.count += 1;
+      last.indices.push(index + 1);
+    } else {
+      groups.push({ key, strength, goal, actual, count: 1, indices: [index + 1] });
+    }
+  });
+  return groups;
+}
+
+function buildExportTextFromSession(session) {
+  const exercises = sortExercisesByChronology(session.exercises || []);
+  const sessionDuration = session.sessionStart && session.sessionEnd ? formatMinutesSummary(session.sessionEnd - session.sessionStart) : '0 min';
+  let text = `${session.date || ''} (${sessionDuration})\n\n`;
+
+  exercises.forEach(ex => {
+    normalizeExerciseForType(ex);
+    const duration = formatMinutesSummary(getExerciseDurationMs(ex));
+    const avgRest = formatMinutesSummary(getExerciseAverageRestMs(ex));
+    const emoji = ex.complete ? '✅' : '👾';
+    const note = ex.note ? `Exercise Note: ${ex.note}` : '';
+
+    text += `${ex.targetArea} - ${ex.name} ${emoji}\n`;
+    text += `Exercise Duration: ${duration}`;
+    if (!getIsCardio(ex)) text += ` | Avg Rest: ${avgRest}`;
+    text += `\n`;
+
+    const groups = groupSetSummaries(ex);
+    groups.forEach(group => {
+      const setLabel = group.count === 1 ? `Set ${group.indices[0]}` : `Sets ${group.indices.join(', ')}`;
+      let line = `${setLabel}:`;
+      if (group.strength) line += ` ${group.strength}`;
+      if (group.goal) line += ` | Goal Reps ${group.goal}`;
+      if (group.actual) line += ` | Actual Reps ${group.actual}`;
+      text += line + `\n`;
+    });
+
+    getVisibleSets(ex).forEach((set, idx) => {
+      if (set.note && String(set.note).trim()) {
+        text += `Set ${idx + 1} Note: ${set.note}\n`;
+      }
+    });
+    if (note) text += note + `\n`;
+    text += `\n`;
+  });
+
+  return text;
+}
+
+function buildExportText() {
+  const snapshot = JSON.parse(JSON.stringify(data.activeSession));
+  snapshot.sessionStart = getSessionStart();
+  snapshot.sessionEnd = getSessionEnd();
+  return buildExportTextFromSession(snapshot);
+}
+
+function openExport() {
+  document.getElementById('exportText').value = buildExportText();
+  show('exportScreen');
+}
+
+function copyExport() {
+  navigator.clipboard.writeText(document.getElementById('exportText').value);
+  alert('Copied');
+}
+
+function applyExerciseMode() {
+  document.body.classList.remove('exercise-complete-mode', 'exercise-incomplete-mode');
+  if (currentExerciseIndex === null) return;
+  const ex = data.activeSession.exercises[currentExerciseIndex];
+  if (!ex) return;
+  document.body.classList.add(ex.complete ? 'exercise-complete-mode' : 'exercise-incomplete-mode');
+}
+
+function clearExerciseMode() {
+  document.body.classList.remove('exercise-complete-mode', 'exercise-incomplete-mode');
+}
+
+function editSetTimes(e, s) {
+  const set = data.activeSession.exercises[e].sets[s];
+  const startCurrent = set.start ? new Date(set.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false}) : '';
+  const endCurrent = set.end ? new Date(set.end).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false}) : '';
+  const startInput = prompt('Edit set start time (HH:MM)', startCurrent);
+  if (startInput === null) return;
+  const endInput = prompt('Edit set end time (HH:MM)', endCurrent);
+  if (endInput === null) return;
+  const baseDate = new Date();
+  function parseTime(str) {
+    const m = String(str || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const d = new Date(baseDate);
+    d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+    return d.getTime();
+  }
+  const parsedStart = parseTime(startInput);
+  const parsedEnd = parseTime(endInput);
+  if (!parsedStart || !parsedEnd || parsedEnd < parsedStart) {
+    alert('Invalid times');
+    return;
+  }
+  set.start = parsedStart;
+  set.end = parsedEnd;
+  set.active = false;
+  save();
+  openExercise(e, { scrollToSet: s });
+}
+
+function renderArchive() {
+  const list = document.getElementById('archiveList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!data.sessionHistory.length) {
+    list.innerHTML = '<div class="smallText muted">No archived sessions yet.</div>';
+    return;
+  }
+  [...data.sessionHistory].reverse().forEach((session, idx) => {
+    const div = document.createElement('div');
+    div.className = 'card' + (idx % 2 === 1 ? ' archiveAlt' : '');
+    const summary = buildExportTextFromSession(JSON.parse(JSON.stringify(session))).replace(/\n/g, '<br>');
+    div.innerHTML = summary;
+    list.appendChild(div);
+  });
+}
+
+function showArchiveDeleteConfirm() {
+  document.getElementById('archiveDeleteConfirm').classList.remove('hidden');
+}
+
+function hideArchiveDeleteConfirm() {
+  document.getElementById('archiveDeleteConfirm').classList.add('hidden');
+}
+
+function showArchiveDeleteFinalConfirm() {
+  document.getElementById('archiveDeleteFinalConfirm').classList.remove('hidden');
+}
+
+function hideArchiveDeleteFinalConfirm() {
+  document.getElementById('archiveDeleteFinalConfirm').classList.add('hidden');
+}
+
+function confirmDeleteArchive() {
+  data.sessionHistory = [];
+  save();
+  hideArchiveDeleteConfirm();
+  hideArchiveDeleteFinalConfirm();
+  renderArchive();
+}
+
+function openArchive() {
+  clearExerciseMode();
+  hideArchiveDeleteConfirm();
+  hideArchiveDeleteFinalConfirm();
+  renderArchive();
+  show('archiveScreen');
+}
+
+function openSettings() {
+  document.getElementById('exerciseSettings').value = data.settings.prefillExercises;
+  show('settingsScreen');
+}
+
+function saveSettings() {
+  data.settings.prefillExercises = document.getElementById('exerciseSettings').value;
+  save();
+  goHome();
+}
+
+function show(id) {
+  ['mainScreen', 'exerciseScreen', 'exportScreen', 'settingsScreen', 'archiveScreen'].forEach(screenId => {
+    const el = document.getElementById(screenId);
+    if (el) el.classList.add('hidden');
+  });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function goHome() {
+  currentExerciseIndex = null;
+  clearExerciseMode();
+  hideClearConfirm();
+  hideArchiveDeleteConfirm();
+  hideArchiveDeleteFinalConfirm();
+  show('mainScreen');
+  renderExercises();
+  requestAnimationFrame(() => {
+    const firstExercise = document.querySelector('#exerciseList .exerciseCard');
+    if (firstExercise) firstExercise.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function getCompletionButtonClasses(ex) {
+  if (ex.complete) {
+    return { completeClass: 'good', incompleteClass: 'disabledAction' };
+  }
+  return { completeClass: 'disabledAction', incompleteClass: 'danger' };
+}
+
+function getStartStopButtonClasses(set) {
+  const startClass = set.active ? 'disabledAction' : 'good';
+  const stopClass = set.active ? 'stop-live' : 'disabledAction';
+  return { startClass, stopClass };
+}
+
+function openExercise(index, options = {}) {
+  currentExerciseIndex = index;
+  const ex = data.activeSession.exercises[index];
+  normalizeExerciseForType(ex);
+  const screen = document.getElementById('exerciseScreen');
+  const status = getExerciseStatus(ex);
+  const statusClass = status.type === 'active' ? 'status-active' : status.type === 'rest' ? 'status-rest' : 'status-idle';
+  const targetScrollSet = typeof options.scrollToSet === 'number' ? options.scrollToSet : getNextRelevantSetIndex(ex);
+  const isCardio = getIsCardio(ex);
+  const visibleSets = getVisibleSets(ex);
+  const reportedSetCount = getReportedSetCount(ex);
+  const completionClasses = getCompletionButtonClasses(ex);
+
+  let html = `
+    <div class="card stack">
+      <div>
+        <div class="sectionTitle">Target Area</div>
+        <input value="${escapeHtml(ex.targetArea)}" onchange="updateExerciseHeader(${index}, 'targetArea', this.value)">
+      </div>
+      <div>
+        <div class="sectionTitle">Exercise Name</div>
+        <input value="${escapeHtml(ex.name)}" onchange="updateExerciseHeader(${index}, 'name', this.value)">
+      </div>
+      <div class="between">
+        <div id="exerciseStatusPill" class="statusPill ${statusClass}">${ex.complete ? '✅ Completed' : '👾 Incomplete'} • ${status.label}: ${formatDuration(status.ms)}</div>
+        <div class="timer exerciseTimer">Exercise Time: <span id="exerciseTimeValue">${formatDuration(getExerciseDurationMs(ex))}</span></div>
+      </div>
+      <div>
+        <div class="sectionTitle">Exercise Notes</div>
+        <textarea onchange="updateExerciseNote(${index}, this.value)">${escapeHtml(ex.note || '')}</textarea>
+      </div>
+    </div>
+  `;
+
+  visibleSets.forEach((set, setIndex) => {
+    const startText = set.start ? new Date(set.start).toLocaleTimeString() : '';
+    const endText = set.end ? new Date(set.end).toLocaleTimeString() : '';
+    const isLastVisibleSet = setIndex === visibleSets.length - 1;
+    const restText = isLastVisibleSet ? 'N/A' : (set.restAfterMs != null ? formatDuration(set.restAfterMs) : (set.restStart ? formatDuration(Date.now() - set.restStart) : '--:--'));
+    const classes = getStartStopButtonClasses(set);
+    const filledClass = String(set.actualReps || '').trim() !== '' ? 'filled' : '';
+
+    html += `
+      <div class="setCard ${filledClass}" id="set-card-${setIndex}">
+        <h4>${isCardio ? 'Cardio Entry' : `Set ${setIndex + 1}`}</h4>
+
+        <div class="row">
+          <div class="half">
+            <div class="sectionTitle">Strength</div>
+            <input value="${escapeHtml(set.strengthValue)}" onchange="updateWeight(${index}, ${setIndex}, this.value)">
+          </div>
+          <div class="half">
+            <div class="sectionTitle">Unit</div>
+            <input value="${escapeHtml(set.strengthUnit)}" onchange="updateUnit(${index}, ${setIndex}, this.value)">
+          </div>
+        </div>
+
+        <div class="spacerTop row">
+          <div class="half">
+            <div class="sectionTitle">Goal Reps</div>
+            <input value="${escapeHtml(set.goalReps)}" onchange="updateGoalReps(${index}, ${setIndex}, this.value)">
+          </div>
+        </div>
+
+        ${setIndex > 0 ? `<div class="row spacerTop"><button class="secondary" onclick="matchAboveStrength(${index}, ${setIndex})">Match Above Strength</button></div>` : ''}
+
+        <div class="miniActions spacerTop">
+          <button class="bigButton ${classes.startClass}" onclick="startSet(${index}, ${setIndex})">START SET</button>
+          <button class="bigButton ${classes.stopClass}" onclick="stopSet(${index}, ${setIndex})">STOP SET</button>
+        </div>
+
+        <div class="setMeta">
+          <div>Start: <span id="set-start-${setIndex}">${startText}</span></div>
+          <div>End: <span id="set-end-${setIndex}">${endText}</span></div>
+          <div>Rest After: <span id="set-rest-${setIndex}">${restText}</span></div>
+        </div>
+
+        <div class="row spacerTop">
+          <button class="secondary" onclick="editSetTimes(${index}, ${setIndex})">Edit Times</button>
+        </div>
+
+        <div class="spacerTop actualRow">
+          <div>
+            <div class="sectionTitle">Actual Reps</div>
+            <button class="good bigButton" onclick="useGoalReps(${index}, ${setIndex})">Match Goal</button>
+          </div>
+          <div>
+            <div class="sectionTitle">Actual Reps Value</div>
+            <input id="actual-reps-${setIndex}" inputmode="numeric" value="${escapeHtml(set.actualReps)}" onchange="updateActualReps(${index}, ${setIndex}, this.value)">
+            <div class="spacerTop"><button class="secondary" onclick="confirmActualReps(${index}, ${setIndex})">Confirm</button></div>
+          </div>
+        </div>
+
+        <div class="spacerTop">
+          <div class="sectionTitle">Set Notes</div>
+          <textarea onchange="updateSetNote(${index}, ${setIndex}, this.value)">${escapeHtml(set.note || '')}</textarea>
+        </div>
+      </div>
+    `;
+
+    if (setIndex === visibleSets.length - 1) {
+      html += `
+        <div class="card stack" id="completion-card">
+          <div class="row between">
+            <div class="smallText muted"><strong>${reportedSetCount}</strong> Sets Reported</div>
+          </div>
+          <div class="row">
+            <button class="${completionClasses.completeClass}" onclick="markExerciseComplete(${index}, true)">✅ Mark Complete</button>
+            <button class="${completionClasses.incompleteClass}" onclick="markExerciseComplete(${index}, false)">👾 Mark Incomplete</button>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  if (!isCardio && !ex.showSet4) {
+    html += `
+      <div class="card addSetWrap">
+        <button class="secondary bigButton" onclick="addSet4(${index})">+ Add Set 4</button>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="row">
+      <button class="secondary" onclick="goHome()">Back</button>
+    </div>
+    <div class="stickyFooterSpace"></div>
+  `;
+
+  screen.innerHTML = html;
+  show('exerciseScreen');
+  applyExerciseMode();
+
+  requestAnimationFrame(() => {
+    const target = document.getElementById(`set-card-${targetScrollSet}`);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (options.focusActual) {
+      const input = document.getElementById(`actual-reps-${targetScrollSet}`);
+      if (input) input.focus();
+    }
+  });
+}
+
+function tick() {
+  const sessionTimer = document.getElementById('sessionTimer');
+  if (sessionTimer) sessionTimer.textContent = formatDuration(getCurrentSessionDurationMs());
+
+  if (currentExerciseIndex !== null && !document.getElementById('exerciseScreen').classList.contains('hidden')) {
+    const ex = data.activeSession.exercises[currentExerciseIndex];
+    if (!ex) return;
+    normalizeExerciseForType(ex);
+    const status = getExerciseStatus(ex);
+    const pill = document.getElementById('exerciseStatusPill');
+    const timeEl = document.getElementById('exerciseTimeValue');
+    if (pill) {
+      pill.className = 'statusPill ' + (status.type === 'active' ? 'status-active' : status.type === 'rest' ? 'status-rest' : 'status-idle');
+      pill.textContent = `${ex.complete ? '✅ Completed' : '👾 Incomplete'} • ${status.label}: ${formatDuration(status.ms)}`;
+    }
+    if (timeEl) timeEl.textContent = formatDuration(getExerciseDurationMs(ex));
+
+    const visible = getVisibleSets(ex);
+    visible.forEach((set, idx) => {
+      const restEl = document.getElementById(`set-rest-${idx}`);
+      const startEl = document.getElementById(`set-start-${idx}`);
+      const endEl = document.getElementById(`set-end-${idx}`);
+      const isLast = idx === visible.length - 1;
+      if (restEl) {
+        restEl.textContent = isLast ? 'N/A' : (set.restAfterMs != null ? formatDuration(set.restAfterMs) : (set.restStart ? formatDuration(Date.now() - set.restStart) : '--:--'));
+      }
+      if (startEl) startEl.textContent = set.start ? new Date(set.start).toLocaleTimeString() : '';
+      if (endEl) endEl.textContent = set.end ? new Date(set.end).toLocaleTimeString() : '';
+    });
+  }
+}
+
+setInterval(tick, 1000);
+renderExercises();
+ensureDateInput();
+show('mainScreen');
+</script>
+</body>
+</html>
