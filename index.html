@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="apple-touch-startup-image" href="splash.svg" />
-<title>Lift Log v0.5</title>
+<title>Lift Log v0.6</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -109,6 +109,33 @@
   }
 
   .archiveAlt { background: #475569; border-color: rgba(255,255,255,0.28); }
+  .archiveTile {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .archiveTile:active {
+    transform: scale(0.99);
+  }
+  .archiveTileHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .archivePreview {
+    display: grid;
+    gap: 6px;
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+  .archiveHint {
+    margin-top: 12px;
+    font-size: 0.88rem;
+    opacity: 0.82;
+    font-weight: 700;
+  }
+
   .setCard.filled {
     background: #162235;
     border-color: rgba(255,255,255,0.22);
@@ -183,6 +210,7 @@
   .confirmBox { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 12px; background: rgba(255,255,255,0.04); }
   .stickyFooterSpace { height: 6px; }
   .toast { min-height: 24px; font-size: 0.92rem; color: var(--muted); }
+  .backupInput { display: none; }
 
   @media (max-width: 520px) {
     .half { width: 100%; }
@@ -210,7 +238,7 @@
 </head>
 <body>
 <header>
-  <h1>Lift Log v0.5</h1>
+  <h1>Lift Log v0.6</h1>
   <div id="sessionTimer" class="timer headerTimer">00:00</div>
 </header>
 
@@ -273,7 +301,7 @@
     <textarea id="exportText"></textarea>
     <div class="row mainActionRow">
       <button onclick="copyExport()">Copy</button>
-      <button class="secondary" onclick="goHome()">Back</button>
+      <button class="secondary" onclick="goBackFromExport()">Back</button>
     </div>
   </div>
 </div>
@@ -281,7 +309,7 @@
 <div class="container hidden" id="archiveScreen">
   <div class="card stack">
     <h3>Archived Sessions</h3>
-    <div class="smallText muted">Archived sessions are shown with export-style summaries.</div>
+    <div class="smallText muted">Each tile shows a preview. Tap any tile to open the full export text. Archive JSON backup/import applies to your full archive.</div>
     <div id="archiveList"></div>
     <div id="archiveDeleteConfirm" class="confirmBox hidden">
       <div class="smallText">Delete all archived sessions?</div>
@@ -296,6 +324,10 @@
         <button class="danger" onclick="confirmDeleteArchive()">Yes, Delete Archive</button>
         <button class="secondary" onclick="hideArchiveDeleteFinalConfirm()">Cancel</button>
       </div>
+    </div>
+    <div class="row mainActionRow">
+      <button class="secondary" onclick="downloadArchiveBackupJson()">Export Archive JSON</button>
+      <button class="ghost" onclick="triggerImportArchiveBackup()">Import Archive JSON</button>
     </div>
     <div class="row mainActionRow">
       <button class="danger" onclick="showArchiveDeleteConfirm()">Delete Archive</button>
@@ -316,8 +348,10 @@
   </div>
 </div>
 
+<input id="backupFileInput" class="backupInput" type="file" accept=".json,application/json" onchange="handleBackupFileSelected(event)" />
+
 <script>
-// Lift Log v0.5 - PWA production polish
+// Lift Log v0.6 - archive preview + archive backup import/export
 function makeId() { return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.floor(Math.random() * 100000)); }
 function todayString() { return new Date().toLocaleDateString(); }
 function defaultData() {
@@ -338,7 +372,9 @@ function defaultData() {
 }
 let data;
 let currentExerciseIndex = null;
+let exportBackTarget = 'home';
 const STORAGE_KEY = 'liftlog';
+const BACKUP_FILE_VERSION = 1;
 try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultData(); } catch { data = defaultData(); }
 if (!data.activeSession.prefillState) data.activeSession.prefillState = { exercisesClicked: false, lastStrengthClicked: false, goalRepsSelected: null };
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
@@ -351,9 +387,13 @@ function parsePrefillLine(line){ const trimmed=String(line||'').trim(); if(!trim
 function createExercise(area='', name='', unit=null){ const isCardio=String(area).trim().toLowerCase()==='cardio'; const resolvedUnit=unit||(isCardio?'speed':'lbs'); return { id: makeId(), targetArea: area, name: name, complete: false, skipped: false, note: '', showSet4: false, sets: isCardio?[createSet(resolvedUnit)]:[createSet(resolvedUnit),createSet(resolvedUnit),createSet(resolvedUnit)]}; }
 function getIsCardio(ex){ return String(ex.targetArea).trim().toLowerCase()==='cardio'; }
 function normalizeExerciseForType(ex){ if(getIsCardio(ex)){ ex.showSet4=false; ex.sets=[ex.sets[0]||createSet('speed')]; ex.sets[0].strengthUnit=ex.sets[0].strengthUnit||'speed'; ex.sets[0].goalReps=1; } else { const defaultUnit=ex.sets[0]?.strengthUnit||'lbs'; while(ex.sets.length<3) ex.sets.push(createSet(defaultUnit)); if(ex.sets.length>4) ex.sets=ex.sets.slice(0,4); ex.sets.forEach(set=>{ if(!set.strengthUnit) set.strengthUnit=defaultUnit; }); } }
+function normalizeSession(session){ if (!session || !Array.isArray(session.exercises)) return session; session.exercises.forEach(ex => normalizeExerciseForType(ex)); if (!session.prefillState) session.prefillState = { exercisesClicked: false, lastStrengthClicked: false, goalRepsSelected: null };
+  return session;
+}
 function getVisibleSets(ex){ if(getIsCardio(ex)) return ex.sets.slice(0,1); return ex.showSet4?ex.sets:ex.sets.slice(0,3); }
 function formatDuration(ms){ if(!ms||ms<0) return '00:00'; const total=Math.floor(ms/1000), h=Math.floor(total/3600), m=Math.floor((total%3600)/60), s=total%60; return h>0?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
 function formatMinutesSummary(ms){ if(!ms||ms<=0) return '0 min'; return `${Math.round(ms/60000)} min`; }
+function formatMinutesAndPercent(ms,totalMs){ const minutes=Math.round((ms||0)/60000); const percent=totalMs>0?Math.round(((ms||0)/totalMs)*100):0; return `${minutes} min (${percent}%)`; }
 function getExerciseFirstStart(ex){ const starts=ex.sets.map(s=>s.start).filter(Boolean); return starts.length?Math.min(...starts):null; }
 function getExerciseLastEnd(ex){ const ends=ex.sets.map(s=>s.end).filter(Boolean); return ends.length?Math.max(...ends):null; }
 function getExerciseDurationMs(ex){ const first=getExerciseFirstStart(ex), last=getExerciseLastEnd(ex); if(!first||!last||last<first) return 0; return last-first; }
@@ -367,6 +407,61 @@ function getReportedSetCount(ex){ return getVisibleSets(ex).filter(set=>String(s
 function getNextRelevantSetIndex(ex){ const visible=getVisibleSets(ex); const activeIdx=visible.findIndex(s=>s.active); if(activeIdx>=0) return activeIdx; for(let i=0;i<visible.length;i++){ const set=visible[i]; if(!set.start||!set.end||String(set.actualReps).trim()==='') return i; } return Math.max(visible.length-1,0); }
 function sortExercisesForMainPage(){ data.activeSession.exercises.sort((a,b)=>{ const rank=x=>x.skipped?2:(x.complete?1:0); return rank(a)-rank(b); }); }
 function sortExercisesByChronology(exercises){ return [...exercises].sort((a,b)=>{ const aStart=getExerciseFirstStart(a)||Number.MAX_SAFE_INTEGER; const bStart=getExerciseFirstStart(b)||Number.MAX_SAFE_INTEGER; return aStart-bStart; }); }
+function summarizeExerciseCounts(session){
+  const exercises = Array.isArray(session?.exercises) ? session.exercises : [];
+  const completed = exercises.filter(ex => ex.complete).length;
+  const skipped = exercises.filter(ex => ex.skipped).length;
+  const incomplete = exercises.length - completed - skipped;
+  const parts = [];
+  if (completed) parts.push(`${completed} Exercise${completed===1?'':'s'} Completed`);
+  if (skipped) parts.push(`${skipped} Exercise${skipped===1?'':'s'} Skipped`);
+  if (incomplete) parts.push(`${incomplete} Exercise${incomplete===1?'':'s'} Incomplete`);
+  return parts.length ? parts.join(', ') : '0 Exercises';
+}
+function getSetActiveMs(set){ if(!set?.start || !set?.end || set.end < set.start) return 0; return set.end - set.start; }
+function computeSessionMetrics(session){
+  const safeSession = JSON.parse(JSON.stringify(session || {}));
+  normalizeSession(safeSession);
+  const exercises = sortExercisesByChronology(safeSession.exercises || []);
+  const sessionStart = safeSession.sessionStart || (exercises.flatMap(ex => ex.sets.map(s => s.start)).filter(Boolean).sort((a,b)=>a-b)[0] || null);
+  const sessionEnd = safeSession.sessionEnd || (exercises.flatMap(ex => ex.sets.map(s => s.end)).filter(Boolean).sort((a,b)=>b-a)[0] || null);
+  const totalMs = sessionStart && sessionEnd && sessionEnd >= sessionStart ? sessionEnd - sessionStart : 0;
+
+  let activeMs = 0;
+  let restMs = 0;
+  exercises.forEach(ex => {
+    getVisibleSets(ex).forEach((set, idx, arr) => {
+      activeMs += getSetActiveMs(set);
+      if (idx < arr.length - 1 && typeof set.restAfterMs === 'number' && set.restAfterMs >= 0) restMs += set.restAfterMs;
+    });
+  });
+
+  let shiftMs = 0;
+  for (let i = 0; i < exercises.length - 1; i++) {
+    const currentEnd = getExerciseLastEnd(exercises[i]);
+    const nextStart = getExerciseFirstStart(exercises[i + 1]);
+    if (currentEnd && nextStart && nextStart > currentEnd) shiftMs += (nextStart - currentEnd);
+  }
+
+  if (totalMs > 0) {
+    const remainder = totalMs - activeMs - restMs - shiftMs;
+    if (remainder > 0) shiftMs += remainder;
+  }
+
+  return {
+    sessionStart,
+    sessionEnd,
+    totalMs,
+    activeMs,
+    restMs,
+    shiftMs,
+    countsText: summarizeExerciseCounts(safeSession),
+    totalText: `Total Duration: ${formatMinutesSummary(totalMs)}`,
+    activeText: `Active Workout: ${formatMinutesAndPercent(activeMs, totalMs)}`,
+    restText: `Rest Between Sets: ${formatMinutesAndPercent(restMs, totalMs)}`,
+    shiftText: `Shift Exercises: ${formatMinutesAndPercent(shiftMs, totalMs)}`
+  };
+}
 function updatePrefillButtonStyles(){ const st=data.activeSession.prefillState||{}; const e=document.getElementById('prefillExercisesBtn'), ls=document.getElementById('prefillStrengthBtn'), b8=document.getElementById('rep8Btn'), b10=document.getElementById('rep10Btn'), b12=document.getElementById('rep12Btn'); if(e)e.className=st.exercisesClicked?'':'unselected'; if(ls)ls.className=st.lastStrengthClicked?'':'unselected'; if(b8)b8.className=st.goalRepsSelected===8?'':'unselected'; if(b10)b10.className=st.goalRepsSelected===10?'':'unselected'; if(b12)b12.className=st.goalRepsSelected===12?'':'unselected'; }
 function updateSessionDate(value){ data.activeSession.date=value; save(); }
 function ensureDateInput(){ const input=document.getElementById('sessionDateInput'); if(input) input.value=data.activeSession.date||todayString(); }
@@ -401,14 +496,70 @@ function stopSet(e,s){ const ex=data.activeSession.exercises[e]; const visible=g
 function addSet4(e){ const ex=data.activeSession.exercises[e]; if(getIsCardio(ex)) return; if(!ex.showSet4){ ex.showSet4=true; if(ex.sets.length<4) ex.sets.push(createSet(ex.sets[0]?.strengthUnit||'lbs')); save(); openExercise(e,{scrollToSet:3}); } }
 function completeAndArchiveSession(){ if(!data.activeSession.exercises.length){ showToast('No active session to archive'); return; } const snapshot=JSON.parse(JSON.stringify(data.activeSession)); snapshot.sessionStart=getSessionStart(); snapshot.sessionEnd=getSessionEnd(); data.sessionHistory.push(snapshot); data.activeSession={ id:makeId(), date:todayString(), sessionStart:null, sessionEnd:null, exercises:[], prefillState:{exercisesClicked:false,lastStrengthClicked:false,goalRepsSelected:null}}; currentExerciseIndex=null; save(); goHome(); showToast('Session archived'); }
 function groupSetSummaries(ex){ const visible=getVisibleSets(ex); const groups=[]; visible.forEach((set,index)=>{ const actual=String(set.actualReps||'').trim(), goal=String(set.goalReps||'').trim(), strength=`${String(set.strengthValue||'').trim()} ${String(set.strengthUnit||'').trim()}`.trim(); const key=`${strength}||${goal}||${actual}`; const last=groups[groups.length-1]; if(last&&last.key===key){ last.count+=1; last.indices.push(index+1);} else { groups.push({key,strength,goal,actual,count:1,indices:[index+1]}); } }); return groups; }
-function buildExportTextFromSession(session){ const exercises=sortExercisesByChronology(session.exercises||[]); const sessionDuration=session.sessionStart&&session.sessionEnd?formatMinutesSummary(session.sessionEnd-session.sessionStart):'0 min'; let text=`${session.date||''} (${sessionDuration})\n\n`; exercises.forEach(ex=>{ normalizeExerciseForType(ex); const duration=formatMinutesSummary(getExerciseDurationMs(ex)); const avgRest=formatMinutesSummary(getExerciseAverageRestMs(ex)); const emoji=ex.skipped?'☠️':(ex.complete?'✅':'👾'); const note=ex.note?`Exercise Note: ${ex.note}`:''; text+=`${ex.targetArea} - ${ex.name} ${emoji}\n`; text+=`Exercise Duration: ${duration}`; if(!getIsCardio(ex)) text+=` | Avg Rest: ${avgRest}`; text+='\n'; const groups=groupSetSummaries(ex); groups.forEach(group=>{ const setLabel=group.count===1?`Set ${group.indices[0]}`:`Sets ${group.indices.join(', ')}`; let line=`${setLabel}:`; if(group.strength) line+=` ${group.strength}`; if(group.goal) line+=` | Goal Reps ${group.goal}`; if(group.actual) line+=` | Actual Reps ${group.actual}`; text+=line+'\n'; }); getVisibleSets(ex).forEach((set,idx)=>{ if(set.note&&String(set.note).trim()) text+=`Set ${idx+1} Note: ${set.note}\n`; }); if(note) text+=note+'\n'; text+='\n'; }); return text; }
+function buildExportTextFromSession(session){ const snapshot=JSON.parse(JSON.stringify(session || {})); normalizeSession(snapshot); const exercises=sortExercisesByChronology(snapshot.exercises||[]); const metrics=computeSessionMetrics(snapshot); let text=`${snapshot.date||''} (${formatMinutesSummary(metrics.totalMs)})\n\n`; exercises.forEach(ex=>{ normalizeExerciseForType(ex); const duration=formatMinutesSummary(getExerciseDurationMs(ex)); const avgRest=formatMinutesSummary(getExerciseAverageRestMs(ex)); const emoji=ex.skipped?'☠️':(ex.complete?'✅':'👾'); const note=ex.note?`Exercise Note: ${ex.note}`:''; text+=`${ex.targetArea} - ${ex.name} ${emoji}\n`; text+=`Exercise Duration: ${duration}`; if(!getIsCardio(ex)) text+=` | Avg Rest: ${avgRest}`; text+='\n'; const groups=groupSetSummaries(ex); groups.forEach(group=>{ const setLabel=group.count===1?`Set ${group.indices[0]}`:`Sets ${group.indices.join(', ')}`; let line=`${setLabel}:`; if(group.strength) line+=` ${group.strength}`; if(group.goal) line+=` | Goal Reps ${group.goal}`; if(group.actual) line+=` | Actual Reps ${group.actual}`; text+=line+'\n'; }); getVisibleSets(ex).forEach((set,idx)=>{ if(set.note&&String(set.note).trim()) text+=`Set ${idx+1} Note: ${set.note}\n`; }); if(note) text+=note+'\n'; text+='\n'; }); text+=`${metrics.totalText}\n${metrics.activeText}\n${metrics.restText}\n${metrics.shiftText}`; return text; }
 function buildExportText(){ const snapshot=JSON.parse(JSON.stringify(data.activeSession)); snapshot.sessionStart=getSessionStart(); snapshot.sessionEnd=getSessionEnd(); return buildExportTextFromSession(snapshot); }
-function openExport(){ document.getElementById('exportText').value=buildExportText(); show('exportScreen'); }
+function openExport(){ exportBackTarget='home'; document.getElementById('exportText').value=buildExportText(); show('exportScreen'); }
+function openArchivedExport(index){ const session = data.sessionHistory[index]; if(!session) return; exportBackTarget='archive'; document.getElementById('exportText').value=buildExportTextFromSession(session); show('exportScreen'); }
+function goBackFromExport(){ if(exportBackTarget==='archive') openArchive(); else goHome(); }
 function copyExport(){ navigator.clipboard.writeText(document.getElementById('exportText').value); showToast('Copied'); }
+function getArchiveBackupPayload(){ return { app:'Lift Log', backupType:'archive', exportedAt:new Date().toISOString(), version:BACKUP_FILE_VERSION, archive: JSON.parse(JSON.stringify(data.sessionHistory || [])) }; }
+function downloadArchiveBackupJson(){
+  try {
+    save();
+    const payload=getArchiveBackupPayload();
+    const json=JSON.stringify(payload, null, 2);
+    const blob=new Blob([json], { type:'application/json' });
+    const date=new Date().toISOString().slice(0,10);
+    const fileName=`liftlog-archive-backup-${date}.json`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Archive JSON exported');
+  } catch (error) {
+    console.error('Archive export failed:', error);
+    alert('Archive export failed. Please try again.');
+  }
+}
+function triggerImportArchiveBackup(){ const input=document.getElementById('backupFileInput'); if(input){ input.value=''; input.click(); } }
+function validateArchiveBackupShape(payload){
+  if (!payload || payload.app !== 'Lift Log') throw new Error('Invalid Lift Log archive backup file.');
+  if (payload.backupType && payload.backupType !== 'archive') throw new Error('This JSON file is not an archive backup.');
+  if (!Array.isArray(payload.archive)) throw new Error('Archive backup is missing archived sessions.');
+  return payload.archive;
+}
+function importArchiveBackupFile(file){
+  const reader = new FileReader();
+  reader.onload = function(event){
+    try {
+      const payload = JSON.parse(String(event.target?.result || ''));
+      const importedArchive = validateArchiveBackupShape(payload).map(session => {
+        const normalized = JSON.parse(JSON.stringify(session || {}));
+        normalizeSession(normalized);
+        return normalized;
+      });
+      data.sessionHistory = importedArchive;
+      save();
+      renderExercises();
+      renderArchive();
+      alert('Archive backup imported successfully.');
+      openArchive();
+    } catch (error) {
+      console.error('Archive import failed:', error);
+      alert(error?.message || 'Import failed. Invalid or corrupted archive backup file.');
+    }
+  };
+  reader.readAsText(file);
+}
+function handleBackupFileSelected(event){ const file=event.target?.files?.[0]; if(file) importArchiveBackupFile(file); }
 function applyExerciseMode(){ document.body.classList.remove('exercise-complete-mode','exercise-incomplete-mode'); if(currentExerciseIndex===null) return; const ex=data.activeSession.exercises[currentExerciseIndex]; if(!ex) return; document.body.classList.add(ex.complete?'exercise-complete-mode':'exercise-incomplete-mode'); }
 function clearExerciseMode(){ document.body.classList.remove('exercise-complete-mode','exercise-incomplete-mode'); }
 function editSetTimes(e,s){ const set=data.activeSession.exercises[e].sets[s]; const startCurrent=set.start?new Date(set.start).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}):''; const endCurrent=set.end?new Date(set.end).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}):''; const startInput=prompt('Edit set start time (HH:MM)', startCurrent); if(startInput===null) return; const endInput=prompt('Edit set end time (HH:MM)', endCurrent); if(endInput===null) return; const baseDate=new Date(); function parseTime(str){ const m=String(str||'').match(/^(\d{1,2}):(\d{2})$/); if(!m) return null; const d=new Date(baseDate); d.setHours(Number(m[1]), Number(m[2]), 0, 0); return d.getTime(); } const parsedStart=parseTime(startInput), parsedEnd=parseTime(endInput); if(!parsedStart||!parsedEnd||parsedEnd<parsedStart){ showToast('Invalid times'); return; } set.start=parsedStart; set.end=parsedEnd; set.active=false; save(); openExercise(e,{scrollToSet:s}); }
-function renderArchive(){ const list=document.getElementById('archiveList'); if(!list) return; list.innerHTML=''; if(!data.sessionHistory.length){ list.innerHTML='<div class="smallText muted">No archived sessions yet.</div>'; return; } [...data.sessionHistory].reverse().forEach((session,idx)=>{ const div=document.createElement('div'); div.className='card'+(idx%2===1?' archiveAlt':''); const summary=buildExportTextFromSession(JSON.parse(JSON.stringify(session))).replace(/\n/g,'<br>'); div.innerHTML=summary; list.appendChild(div); }); }
+function renderArchive(){ const list=document.getElementById('archiveList'); if(!list) return; list.innerHTML=''; if(!data.sessionHistory.length){ list.innerHTML='<div class="smallText muted">No archived sessions yet.</div>'; return; } [...data.sessionHistory].map((session, originalIndex) => ({ session, originalIndex })).reverse().forEach(({session, originalIndex}, idx)=>{ const div=document.createElement('button'); div.type='button'; div.className='card archiveTile'+(idx%2===1?' archiveAlt':''); const metrics=computeSessionMetrics(session); div.innerHTML=`<div class="archiveTileHeader"><div><strong>${escapeHtml(session.date||'')}</strong></div><div class="smallText muted">Tap to open</div></div><div class="archivePreview"><div>${escapeHtml(metrics.countsText)}</div><div>${escapeHtml(metrics.totalText)}</div><div>${escapeHtml(metrics.activeText)}</div><div>${escapeHtml(metrics.restText)}</div><div>${escapeHtml(metrics.shiftText)}</div></div><div class="archiveHint">Open export text</div>`; div.onclick=()=>openArchivedExport(originalIndex); list.appendChild(div); }); }
 function showArchiveDeleteConfirm(){ document.getElementById('archiveDeleteConfirm').classList.remove('hidden'); }
 function hideArchiveDeleteConfirm(){ document.getElementById('archiveDeleteConfirm').classList.add('hidden'); }
 function showArchiveDeleteFinalConfirm(){ document.getElementById('archiveDeleteFinalConfirm').classList.remove('hidden'); }
@@ -418,7 +569,7 @@ function openArchive(){ clearExerciseMode(); hideArchiveDeleteConfirm(); hideArc
 function openSettings(){ document.getElementById('exerciseSettings').value=data.settings.prefillExercises; show('settingsScreen'); }
 function saveSettings(){ data.settings.prefillExercises=document.getElementById('exerciseSettings').value; save(); goHome(); }
 function show(id){ ['mainScreen','exerciseScreen','exportScreen','settingsScreen','archiveScreen'].forEach(screenId=>{ const el=document.getElementById(screenId); if(el) el.classList.add('hidden'); }); document.getElementById(id).classList.remove('hidden'); }
-function goHome(){ currentExerciseIndex=null; clearExerciseMode(); hideClearConfirm(); hideArchiveDeleteConfirm(); hideArchiveDeleteFinalConfirm(); show('mainScreen'); renderExercises(); requestAnimationFrame(()=>{ const first=document.querySelector('#exerciseList .exerciseCard'); if(first) first.scrollIntoView({behavior:'smooth', block:'start'}); }); }
+function goHome(){ currentExerciseIndex=null; clearExerciseMode(); hideClearConfirm(); hideArchiveDeleteConfirm(); hideArchiveDeleteFinalConfirm(); exportBackTarget='home'; show('mainScreen'); renderExercises(); requestAnimationFrame(()=>{ const first=document.querySelector('#exerciseList .exerciseCard'); if(first) first.scrollIntoView({behavior:'smooth', block:'start'}); }); }
 function getCompletionButtonClasses(ex){ if(ex.skipped) return {completeClass:'disabledAction', incompleteClass:'disabledAction', skipClass:'skip'}; if(ex.complete) return {completeClass:'good', incompleteClass:'disabledAction', skipClass:'disabledAction'}; return {completeClass:'disabledAction', incompleteClass:'danger', skipClass:'disabledAction'}; }
 function getStartStopButtonClasses(set){ return { startClass:set.active?'disabledAction':'good', stopClass:set.active?'stop-live':'disabledAction' }; }
 function openExercise(index, options={}){ currentExerciseIndex=index; const ex=data.activeSession.exercises[index]; normalizeExerciseForType(ex); const screen=document.getElementById('exerciseScreen'); const status=getExerciseStatus(ex); const statusClass=status.type==='active'?'status-active':status.type==='rest'?'status-rest':'status-idle'; const targetScrollSet=typeof options.scrollToSet==='number'?options.scrollToSet:getNextRelevantSetIndex(ex); const isCardio=getIsCardio(ex); const visibleSets=getVisibleSets(ex); const reportedSetCount=getReportedSetCount(ex); const completionClasses=getCompletionButtonClasses(ex); let html=`<div class="card stack"><div><div class="sectionTitle">Target Area</div><input value="${escapeHtml(ex.targetArea)}" onchange="updateExerciseHeader(${index}, 'targetArea', this.value)"></div><div><div class="sectionTitle">Exercise Name</div><input value="${escapeHtml(ex.name)}" onchange="updateExerciseHeader(${index}, 'name', this.value)"></div><div class="between"><div id="exerciseStatusPill" class="statusPill ${statusClass}">${ex.skipped?'☠️ Skipped':(ex.complete?'✅ Completed':'👾 Incomplete')} • ${status.label}: ${formatDuration(status.ms)}</div><div class="timer exerciseTimer">Exercise Time: <span id="exerciseTimeValue">${formatDuration(getExerciseDurationMs(ex))}</span></div></div><div><div class="sectionTitle">Exercise Notes</div><textarea onchange="updateExerciseNote(${index}, this.value)">${escapeHtml(ex.note||'')}</textarea></div></div>`; visibleSets.forEach((set,setIndex)=>{ const startText=set.start?new Date(set.start).toLocaleTimeString():''; const endText=set.end?new Date(set.end).toLocaleTimeString():''; const isLast=setIndex===visibleSets.length-1; const restText=isLast?'N/A':(set.restAfterMs!=null?formatDuration(set.restAfterMs):(set.restStart?formatDuration(Date.now()-set.restStart):'--:--')); const classes=getStartStopButtonClasses(set); const filledClass=String(set.actualReps||'').trim()!==''?'filled':''; html+=`<div class="setCard ${filledClass}" id="set-card-${setIndex}"><h4>${isCardio?'Cardio Entry':`Set ${setIndex+1}`}</h4><div class="row">${setIndex>0?`<button class="secondary" onclick="matchAboveStrength(${index}, ${setIndex})">Match Above Strength</button>`:''}<div class="half"><div class="sectionTitle">Strength</div><input inputmode="decimal" value="${escapeHtml(set.strengthValue)}" onchange="updateWeight(${index}, ${setIndex}, this.value)"></div><div class="half"><div class="sectionTitle">Unit</div><input value="${escapeHtml(set.strengthUnit)}" onchange="updateUnit(${index}, ${setIndex}, this.value)"></div></div><div class="spacerTop row"><div class="half"><div class="sectionTitle">Goal Reps</div><input value="${escapeHtml(set.goalReps)}" onchange="updateGoalReps(${index}, ${setIndex}, this.value)"></div></div><div class="miniActions spacerTop"><button class="bigButton ${classes.startClass}" onclick="startSet(${index}, ${setIndex})">START SET</button><button class="bigButton ${classes.stopClass}" onclick="stopSet(${index}, ${setIndex})">STOP SET</button></div><div class="setMeta"><div>Start: <span id="set-start-${setIndex}">${startText}</span></div><div>End: <span id="set-end-${setIndex}">${endText}</span></div><div>Rest After: <span id="set-rest-${setIndex}">${restText}</span></div></div><div class="row spacerTop"><button class="secondary" onclick="editSetTimes(${index}, ${setIndex})">Edit Times</button></div><div class="spacerTop actualRow"><div><div class="sectionTitle">Actual Reps</div><button class="good bigButton" onclick="useGoalReps(${index}, ${setIndex})">Match Goal</button></div><div><div class="sectionTitle">Actual Reps Value</div><input id="actual-reps-${setIndex}" inputmode="numeric" value="${escapeHtml(set.actualReps)}" onchange="updateActualReps(${index}, ${setIndex}, this.value)"><div class="spacerTop"><button class="secondary" onclick="confirmActualReps(${index}, ${setIndex})">Confirm</button></div></div></div><div class="spacerTop"><div class="sectionTitle">Set Notes</div><textarea onchange="updateSetNote(${index}, ${setIndex}, this.value)">${escapeHtml(set.note||'')}</textarea></div></div>`; if(setIndex===visibleSets.length-1){ html+=`<div class="card stack" id="completion-card"><div class="row between"><div class="smallText muted"><strong>${reportedSetCount}</strong> Sets Reported</div></div><div class="row"><button class="${completionClasses.completeClass}" onclick="markExerciseComplete(${index}, true)">✅ Mark Complete</button><button class="${completionClasses.incompleteClass}" onclick="markExerciseComplete(${index}, false)">👾 Mark Incomplete</button><button class="${completionClasses.skipClass}" onclick="markExerciseSkipped(${index})">☠️ Skip</button></div></div>`; } }); if(!isCardio&&!ex.showSet4){ html+=`<div class="card addSetWrap"><button class="secondary bigButton" onclick="addSet4(${index})">+ Add Set 4</button></div>`; } html+=`<div class="row"><button class="secondary" onclick="goHome()">Back</button></div><div class="stickyFooterSpace"></div>`; screen.innerHTML=html; show('exerciseScreen'); applyExerciseMode(); requestAnimationFrame(()=>{ const target=document.getElementById(`set-card-${targetScrollSet}`); if(target) target.scrollIntoView({behavior:'smooth', block:'start'}); if(options.focusActual){ const input=document.getElementById(`actual-reps-${targetScrollSet}`); if(input) input.focus(); } }); }
