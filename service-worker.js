@@ -1,4 +1,4 @@
-const CACHE_NAME = "liftlog-v06";
+const CACHE_NAME = "liftlog-v06-1";
 
 const FILES_TO_CACHE = [
   "./",
