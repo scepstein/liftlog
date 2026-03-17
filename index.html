@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="apple-touch-startup-image" href="splash.svg" />
-<title>Lift Log v0.6.2</title>
+<title>Lift Log v0.6.3</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -246,7 +246,7 @@
 </head>
 <body>
 <header>
-  <h1>Lift Log v0.6.2</h1>
+  <h1>Lift Log v0.6.3</h1>
   <div id="sessionTimer" class="timer headerTimer">00:00</div>
 </header>
 
@@ -374,7 +374,7 @@
 <input id="backupFileInput" class="backupInput" type="file" accept=".json,application/json" onchange="handleBackupFileSelected(event)" />
 
 <script>
-// Lift Log v0.6 - archive preview + archive backup import/export
+// Lift Log v0.6.3 - archive preview + archive backup import/export
 function makeId() { return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.floor(Math.random() * 100000)); }
 function todayString() { return new Date().toLocaleDateString(); }
 function defaultData() {

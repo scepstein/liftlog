@@ -1,4 +1,4 @@
-const CACHE_NAME = "liftlog-v06-2";
+const CACHE_NAME = "liftlog-v06-3";
 
 const FILES_TO_CACHE = [
   "./",
@@ -15,7 +15,6 @@ self.addEventListener("install", event => {
     })
   );
 
-  // Activate the new service worker immediately
   self.skipWaiting();
 });
 
@@ -27,13 +26,11 @@ self.addEventListener("activate", event => {
           if (key !== CACHE_NAME) {
             return caches.delete(key);
           }
+          return undefined;
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-
-  // Take control of existing pages
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", event => {
