@@ -5,6 +5,17 @@ All notable changes to **Lift Log** will be documented in this file.
 This project follows a structured versioning approach to track feature development, usability improvements, and architectural changes.
 
 ---
+## [0.7.0] - 2026-03-18
+### Added
+- New dedicated Changelog page within the Lift Log app
+- Navigation from the main page to the Changelog page
+- Offline caching support for the changelog page
+
+### Changed
+- Lift Log now exposes version history directly in the app UI
+
+### Notes
+- This version improves release visibility and gives users an in-app way to review feature history
 
 ## [0.6.3] - 2026-03-16
 ### Added

@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="apple-touch-startup-image" href="splash.svg" />
-<title>Lift Log v0.6.3</title>
+<title>Lift Log v0.7.0</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -219,6 +219,45 @@
   .stickyFooterSpace { height: 6px; }
   .toast { min-height: 24px; font-size: 0.92rem; color: var(--muted); }
   .backupInput { display: none; }
+  .versionPill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    background: rgba(56,189,248,0.16);
+    color: #bae6fd;
+    border: 1px solid rgba(56,189,248,0.28);
+  }
+  .changelogEntry {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+  }
+  .changelogMeta {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+  .changelogSection {
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: var(--accent);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .changelogList {
+    margin: 8px 0 0 18px;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+    color: var(--text);
+  }
 
   @media (max-width: 520px) {
     .half { width: 100%; }
@@ -246,8 +285,8 @@
 </head>
 <body>
 <header>
-  <h1>Lift Log v0.6.3</h1>
-  <div id="sessionTimer" class="timer headerTimer">00:00</div>
+  <h1>Lift Log v0.7.0</h1>
+  <div class="row"><div class="versionPill">Changelog Included</div><div id="sessionTimer" class="timer headerTimer">00:00</div></div>
 </header>
 
 <div class="container" id="mainScreen">
@@ -297,6 +336,10 @@
     <button onclick="openExport()">Export</button>
     <button class="secondary" onclick="openSettings()">Settings</button>
     <button class="ghost" onclick="openArchive()">Archive Review</button>
+  </div>
+
+  <div class="row mainActionRow">
+    <button class="ghost" onclick="openChangelog()">What's New / Changelog</button>
   </div>
 </div>
 
@@ -359,6 +402,71 @@
   </div>
 </div>
 
+
+<div class="container hidden" id="changelogScreen">
+  <div class="card stack">
+    <div class="between">
+      <div>
+        <h3>Lift Log Changelog</h3>
+        <div class="smallText muted">Version history built directly into the app.</div>
+      </div>
+      <div class="versionPill">v0.7.0</div>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.7.0</h4>
+      <div class="changelogMeta">March 18, 2026</div>
+      <div class="changelogSection">Added</div>
+      <ul class="changelogList">
+        <li>New in-app changelog screen accessible from the home page.</li>
+        <li>Version badge in the header for clearer release visibility.</li>
+      </ul>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Preserved the v0.6.3 workflow and design language while extending it with release-history navigation.</li>
+        <li>Kept Archive Review, export, settings, and active workout flows intact.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.6.3</h4>
+      <div class="changelogMeta">March 16, 2026</div>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Archive Review tiles were made more readable with stronger contrast.</li>
+        <li>Improved clarity between cached and deployed app versions.</li>
+      </ul>
+      <div class="changelogSection">Technical</div>
+      <ul class="changelogList">
+        <li>Refined cache versioning and update behavior.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.6.0</h4>
+      <div class="changelogMeta">Archive Review milestone</div>
+      <div class="changelogSection">Added</div>
+      <ul class="changelogList">
+        <li>Archive system for storing completed sessions.</li>
+        <li>Archive Review tiles with previews and export access.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.5.0</h4>
+      <div class="changelogMeta">PWA milestone</div>
+      <div class="changelogSection">Added</div>
+      <ul class="changelogList">
+        <li>Manifest, installability, and offline service worker support.</li>
+      </ul>
+    </div>
+
+    <div class="row mainActionRow">
+      <button class="secondary" onclick="goHome()">Back</button>
+    </div>
+  </div>
+</div>
+
 <div class="container hidden" id="settingsScreen">
   <div class="card stack">
     <h3>Prefill Exercises</h3>
@@ -374,7 +482,7 @@
 <input id="backupFileInput" class="backupInput" type="file" accept=".json,application/json" onchange="handleBackupFileSelected(event)" />
 
 <script>
-// Lift Log v0.6.3 - archive preview + archive backup import/export
+// Lift Log v0.7.0 - changelog screen + archive preview + archive backup import/export
 function makeId() { return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.floor(Math.random() * 100000)); }
 function todayString() { return new Date().toLocaleDateString(); }
 function defaultData() {
@@ -612,8 +720,9 @@ function hideArchiveDeleteFinalConfirm(){ document.getElementById('archiveDelete
 function confirmDeleteArchive(){ data.sessionHistory=[]; save(); hideArchiveDeleteConfirm(); hideArchiveDeleteFinalConfirm(); renderArchive(); }
 function openArchive(){ clearExerciseMode(); hideArchiveDeleteConfirm(); hideArchiveDeleteFinalConfirm(); hideArchiveEntryDeleteConfirm(); hideArchiveEntryDeleteFinalConfirm(); renderArchive(); show('archiveScreen'); }
 function openSettings(){ document.getElementById('exerciseSettings').value=data.settings.prefillExercises; show('settingsScreen'); }
+function openChangelog(){ clearExerciseMode(); hideClearConfirm(); hideArchiveDeleteConfirm(); hideArchiveDeleteFinalConfirm(); hideArchiveEntryDeleteConfirm(); hideArchiveEntryDeleteFinalConfirm(); show('changelogScreen'); }
 function saveSettings(){ data.settings.prefillExercises=document.getElementById('exerciseSettings').value; save(); goHome(); }
-function show(id){ ['mainScreen','exerciseScreen','exportScreen','settingsScreen','archiveScreen'].forEach(screenId=>{ const el=document.getElementById(screenId); if(el) el.classList.add('hidden'); }); document.getElementById(id).classList.remove('hidden'); }
+function show(id){ ['mainScreen','exerciseScreen','exportScreen','settingsScreen','archiveScreen','changelogScreen'].forEach(screenId=>{ const el=document.getElementById(screenId); if(el) el.classList.add('hidden'); }); document.getElementById(id).classList.remove('hidden'); }
 function goHome(){ currentExerciseIndex=null; clearExerciseMode(); hideClearConfirm(); hideArchiveDeleteConfirm(); hideArchiveDeleteFinalConfirm(); hideArchiveEntryDeleteConfirm(); hideArchiveEntryDeleteFinalConfirm(); exportBackTarget='home'; currentArchivedExportIndex=null; show('mainScreen'); renderExercises(); requestAnimationFrame(()=>{ const first=document.querySelector('#exerciseList .exerciseCard'); if(first) first.scrollIntoView({behavior:'smooth', block:'start'}); }); }
 function getCompletionButtonClasses(ex){ if(ex.skipped) return {completeClass:'disabledAction', incompleteClass:'disabledAction', skipClass:'skip'}; if(ex.complete) return {completeClass:'good', incompleteClass:'disabledAction', skipClass:'disabledAction'}; return {completeClass:'disabledAction', incompleteClass:'danger', skipClass:'disabledAction'}; }
 function getStartStopButtonClasses(set){ return { startClass:set.active?'disabledAction':'good', stopClass:set.active?'stop-live':'disabledAction' }; }
