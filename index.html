@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="apple-touch-startup-image" href="splash.svg" />
-<title>Lift Log v0.7.0</title>
+<title>Lift Log v0.7.1</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -285,8 +285,8 @@
 </head>
 <body>
 <header>
-  <h1>Lift Log v0.7.0</h1>
-  <div class="row"><div class="versionPill">Changelog Included</div><div id="sessionTimer" class="timer headerTimer">00:00</div></div>
+  <h1>Lift Log v0.7.1</h1>
+  <div class="row"><div id="sessionTimer" class="timer headerTimer">00:00</div></div>
 </header>
 
 <div class="container" id="mainScreen">
@@ -338,7 +338,7 @@
     <button class="ghost" onclick="openArchive()">Archive Review</button>
   </div>
 
-  <div class="row mainActionRow">
+  <div class="row mainActionRow spacerTop">
     <button class="ghost" onclick="openChangelog()">What's New / Changelog</button>
   </div>
 </div>
@@ -410,7 +410,22 @@
         <h3>Lift Log Changelog</h3>
         <div class="smallText muted">Version history built directly into the app.</div>
       </div>
-      <div class="versionPill">v0.7.0</div>
+      <div class="versionPill">v0.7.1</div>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.7.1</h4>
+      <div class="changelogMeta">March 18, 2026</div>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Expanded the in-app changelog so it reflects the full version history captured in the project changelog.</li>
+        <li>Removed the "Changelog Included" banner from the top header for a cleaner home screen.</li>
+        <li>Added more spacing between Archive Review and What’s New / Changelog on the home screen.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>This release focuses on polish and making release history more complete and readable inside the app.</li>
+      </ul>
     </div>
 
     <div class="changelogEntry">
@@ -418,46 +433,186 @@
       <div class="changelogMeta">March 18, 2026</div>
       <div class="changelogSection">Added</div>
       <ul class="changelogList">
-        <li>New in-app changelog screen accessible from the home page.</li>
-        <li>Version badge in the header for clearer release visibility.</li>
+        <li>New dedicated Changelog page within the Lift Log app.</li>
+        <li>Navigation from the main page to the Changelog page.</li>
+        <li>Offline caching support for the changelog page.</li>
       </ul>
       <div class="changelogSection">Changed</div>
       <ul class="changelogList">
-        <li>Preserved the v0.6.3 workflow and design language while extending it with release-history navigation.</li>
-        <li>Kept Archive Review, export, settings, and active workout flows intact.</li>
+        <li>Lift Log now exposes version history directly in the app UI.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>This version improves release visibility and gives users an in-app way to review feature history.</li>
       </ul>
     </div>
 
     <div class="changelogEntry">
       <h4>v0.6.3</h4>
       <div class="changelogMeta">March 16, 2026</div>
+      <div class="changelogSection">Added</div>
+      <ul class="changelogList">
+        <li>Version tracking considerations for UI visibility (manual version awareness).</li>
+      </ul>
       <div class="changelogSection">Changed</div>
       <ul class="changelogList">
-        <li>Archive Review tiles were made more readable with stronger contrast.</li>
-        <li>Improved clarity between cached and deployed app versions.</li>
+        <li>Improved Archive Review tile readability with stronger contrast for better legibility.</li>
+      </ul>
+      <div class="changelogSection">Fixed</div>
+      <ul class="changelogList">
+        <li>Addressed inconsistencies between the cached PWA version and the deployed GitHub Pages version.</li>
       </ul>
       <div class="changelogSection">Technical</div>
       <ul class="changelogList">
-        <li>Refined cache versioning and update behavior.</li>
+        <li>Updated service worker cache versioning strategy.</li>
+        <li>Improved cache invalidation behavior to help users receive the latest updates.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.6.2</h4>
+      <div class="changelogMeta">March 15, 2026</div>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Refined service worker behavior for more predictable update cycles.</li>
+      </ul>
+      <div class="changelogSection">Technical</div>
+      <ul class="changelogList">
+        <li>Adjusted cache naming conventions.</li>
+        <li>Explored dynamic cache busting strategies.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.6.1</h4>
+      <div class="changelogMeta">March 15, 2026</div>
+      <div class="changelogSection">Fixed</div>
+      <ul class="changelogList">
+        <li>Initial fixes to Archive Review UI readability.</li>
+        <li>Minor UI polish across tiles and layout.</li>
+      </ul>
+      <div class="changelogSection">Technical</div>
+      <ul class="changelogList">
+        <li>Began implementing structured cache versioning.</li>
       </ul>
     </div>
 
     <div class="changelogEntry">
       <h4>v0.6.0</h4>
-      <div class="changelogMeta">Archive Review milestone</div>
+      <div class="changelogMeta">March 14, 2026</div>
       <div class="changelogSection">Added</div>
       <ul class="changelogList">
-        <li>Archive system for storing completed sessions.</li>
-        <li>Archive Review tiles with previews and export access.</li>
+        <li>Archive system for storing past workouts.</li>
+        <li>Archive Review interface with tile-based layout.</li>
+        <li>Ability to revisit historical workout data.</li>
+      </ul>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Expanded UI to support multi-state navigation between the active log and archive.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>First major transition from simple logging to historical tracking.</li>
+        <li>Introduced increased UI complexity and state management considerations.</li>
       </ul>
     </div>
 
     <div class="changelogEntry">
       <h4>v0.5.0</h4>
-      <div class="changelogMeta">PWA milestone</div>
+      <div class="changelogMeta">March 10, 2026</div>
       <div class="changelogSection">Added</div>
       <ul class="changelogList">
-        <li>Manifest, installability, and offline service worker support.</li>
+        <li>Progressive Web App (PWA) support including manifest, app icons, and installability on mobile devices.</li>
+        <li>Splash screen with Lift Log branding.</li>
+        <li>Service worker for offline support.</li>
+      </ul>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>App now launches in standalone mode on mobile.</li>
+        <li>Improved perceived performance via caching.</li>
+      </ul>
+      <div class="changelogSection">Technical</div>
+      <ul class="changelogList">
+        <li>Initial cache strategy implemented.</li>
+        <li>Offline-first behavior introduced.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>Major milestone: transition from webpage to installable app.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.4.0</h4>
+      <div class="changelogMeta">March 9, 2026</div>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Improved mobile usability with an iPhone-focused pass.</li>
+        <li>Adjusted tile colors for better contrast.</li>
+        <li>Improved spacing and touch interaction.</li>
+      </ul>
+      <div class="changelogSection">Fixed</div>
+      <ul class="changelogList">
+        <li>Resolved readability issues on smaller screens.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>Shifted toward a mobile-first design philosophy.</li>
+        <li>First version optimized for real gym usage.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.3.0</h4>
+      <div class="changelogMeta">March 8, 2026</div>
+      <div class="changelogSection">Added</div>
+      <ul class="changelogList">
+        <li>Improved UI layout for workout entries.</li>
+        <li>Early tile and card-based design system.</li>
+      </ul>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Increased readability of logged workouts.</li>
+        <li>Created a cleaner visual hierarchy.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>First usability-focused iteration.</li>
+        <li>Transitioned from a raw interface to a more user-friendly design.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.2.0</h4>
+      <div class="changelogMeta">March 7, 2026</div>
+      <div class="changelogSection">Added</div>
+      <ul class="changelogList">
+        <li>Structured workout logging system.</li>
+        <li>Grouping of exercises into sessions.</li>
+      </ul>
+      <div class="changelogSection">Changed</div>
+      <ul class="changelogList">
+        <li>Standardized the data model for logs.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>Established the foundational data structure for future features.</li>
+      </ul>
+    </div>
+
+    <div class="changelogEntry">
+      <h4>v0.1.0</h4>
+      <div class="changelogMeta">March 6, 2026</div>
+      <div class="changelogSection">Added</div>
+      <ul class="changelogList">
+        <li>Initial prototype of the workout logging interface.</li>
+        <li>Basic input fields for exercise, weight, and reps.</li>
+        <li>Local storage persistence.</li>
+      </ul>
+      <div class="changelogSection">Notes</div>
+      <ul class="changelogList">
+        <li>Proof of concept.</li>
+        <li>No styling or advanced structure.</li>
       </ul>
     </div>
 
@@ -482,7 +637,7 @@
 <input id="backupFileInput" class="backupInput" type="file" accept=".json,application/json" onchange="handleBackupFileSelected(event)" />
 
 <script>
-// Lift Log v0.7.0 - changelog screen + archive preview + archive backup import/export
+// Lift Log v0.7.1 - comprehensive in-app changelog + layout polish
 function makeId() { return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.floor(Math.random() * 100000)); }
 function todayString() { return new Date().toLocaleDateString(); }
 function defaultData() {

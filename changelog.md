@@ -5,6 +5,18 @@ All notable changes to **Lift Log** will be documented in this file.
 This project follows a structured versioning approach to track feature development, usability improvements, and architectural changes.
 
 ---
+
+## [0.7.1] - 2026-03-18
+### Changed
+- Expanded the in-app changelog so it reflects the full version history captured in `CHANGELOG.md`
+- Removed the "Changelog Included" item from the top banner for a cleaner header
+- Added more spacing between the "Archive Review" and "What's New / Changelog" buttons on the home screen
+
+### Notes
+- This release focuses on polish and making release history more complete and readable inside the app
+
+---
+
 ## [0.7.0] - 2026-03-18
 ### Added
 - New dedicated Changelog page within the Lift Log app
